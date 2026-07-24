@@ -5,13 +5,9 @@
 
 ## Em andamento
 
-- (F1) Fundação: GDD ✅, ARCHITECTURE ✅, types.ts ✅, constants.ts ✅ — falta commit
+- (F2+F3+F4) Workflow `wf_6a487b32-64c`: 5 builders paralelos (core/data/game/ui/sim-tests) → integrador (main.ts, typecheck, testes, build). Inclui F3 e F4.
 
 ## Backlog
-
-- (F2) Workflow implementação paralela: core/ · data/ · game/ · ui/+save/ (4 agentes, contratos fixos)
-- (F3) Integração: main.ts + typecheck + build + dev server ok
-- (F4) Testes vitest + sim/headless.ts (partida 20min sem crash)
 - (F5) Workflow polish: áudio, game feel/FX, loja meta, balanceamento via sim
 - (F6) Workflow QA: revisões (bugs/perf/UX/balance) + verificação adversarial + fixes
 - (F7) Smoke test browser real (playwright) + screenshots inspecionados
@@ -20,6 +16,7 @@
 ## Feito
 
 - (F0) Scaffold: git, package.json, tsconfig, vite(+singlefile), index.html, npm install
+- (F1) Fundação: GDD, ARCHITECTURE, types.ts, constants.ts, ui/layout.ts, kanban — commit 801bf73
 
 ## Decisões
 
