@@ -5,12 +5,13 @@
 
 ## Em andamento
 
-- (F5) Workflow `wf_4dadf6ce-656`: balance (sim multi-seed, alvos de densidade/ouro/dificuldade) · game-feel (ui/fx) · áudio+música+debug hook · verificador (deep smoke com screenshots de todas as telas).
+(vazio — v1 entregue em 2026-07-24)
 
-## Backlog
-- (F6) Workflow QA: revisões (bugs/perf/UX/balance) + verificação adversarial + fixes
-- (F7b) Re-smoke pós-F6 + inspeção visual final minha
-- (F8) Build final single-file + README + entrega
+## Backlog (pós-v1, se o cliente pedir)
+
+- Saideira dropando de elites (hoje: garantida 1/chefe — mudaria stream de RNG das sims)
+- Revisitar dificuldade por seed (1337 ruidoso vence; 7 ruidoso morre aos 8:03)
+- Sprites do time de arte no lugar dos emoji
 
 ## Feito
 
@@ -18,6 +19,9 @@
 - (F1) Fundação: GDD, ARCHITECTURE, types.ts, constants.ts, ui/layout.ts, kanban — commit 801bf73
 - (F2/3/4) Implementação + integração via workflow: 39 testes verdes, build 60KB, sim vence run 20min — commit c3b9150
 - (F7a) Smoke playwright inicial: 0 erros console, ~121fps, screenshots ok (menus/HUD/pausa/gameplay). Achados → alimentaram o F5.
+- (F5) Polish via workflow: balance por sim multi-seed (BALANCE.md), game feel, música forró 8-bit procedural, hook __boteco/?seed — commit e3c77c1. Incidente: agente de balance não entregou relatório/doc; verificador cobriu, orquestrador escreveu BALANCE.md.
+- (F6) QA workflow (15 agentes): 20 achados → 9 confirmados adversarialmente → 15 correções (destaques: Rodada da Casa inundava pool de projéteis; marmita sem fallback de upgrade; saideira perdia XP no cap de gems; canvas borrado em janela grande; auto-pausa em blur; confirmação antes de fechar aba no meio da run) — commit c8ac7cd.
+- (F7b/F8) Verificação independente final: typecheck ✅ 40/40 ✅ build 74KB ✅ smoke 0 erros ✅ + inspeção visual. README. ENTREGUE.
 
 ## Decisões
 
