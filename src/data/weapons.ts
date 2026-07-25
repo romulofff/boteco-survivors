@@ -13,10 +13,10 @@ export const WEAPONS: WeaponDef[] = [
   {
     id: 'tampinha',
     name: 'Tampinha Voadora',
-    emoji: '🍾',
+    emoji: '🪙',
     desc: 'Peteleco certeiro no inimigo mais próximo.',
     behavior: 'nearest',
-    base: { damage: 10, cooldown: 1.1, amount: 1, speed: 380, area: 9, duration: 2, pierce: 1, knockback: 10 },
+    base: { damage: 12, cooldown: 1.0, amount: 1, speed: 380, area: 9, duration: 2, pierce: 1, knockback: 10 },
     perLevel: [
       { damage: 3 },
       { amount: 1 },
@@ -34,7 +34,7 @@ export const WEAPONS: WeaponDef[] = [
     emoji: '🧻',
     desc: 'Chicotada instantânea, alternando os lados.',
     behavior: 'whip',
-    base: { damage: 15, cooldown: 1.3, amount: 1, speed: 0, area: 70, duration: 0.18, pierce: 999, knockback: 18 },
+    base: { damage: 18, cooldown: 1.25, amount: 1, speed: 0, area: 80, duration: 0.18, pierce: 999, knockback: 18 },
     perLevel: [
       { damage: 5, area: 10 },
       { area: 12 },
@@ -52,7 +52,7 @@ export const WEAPONS: WeaponDef[] = [
     emoji: '🍢',
     desc: 'Dispara na direção do movimento, perfurando.',
     behavior: 'directional',
-    base: { damage: 8, cooldown: 0.9, amount: 1, speed: 450, area: 8, duration: 1.6, pierce: 2, knockback: 6 },
+    base: { damage: 10, cooldown: 0.85, amount: 1, speed: 450, area: 8, duration: 1.6, pierce: 3, knockback: 6 },
     perLevel: [
       { damage: 2 },
       { amount: 1 },
@@ -88,7 +88,7 @@ export const WEAPONS: WeaponDef[] = [
     emoji: '🥏',
     desc: 'Vai e volta, atropelando tudo no caminho.',
     behavior: 'boomerang',
-    base: { damage: 12, cooldown: 2.0, amount: 1, speed: 350, area: 16, duration: 1.8, pierce: 999, knockback: 12 },
+    base: { damage: 14, cooldown: 1.9, amount: 1, speed: 350, area: 16, duration: 1.8, pierce: 999, knockback: 12 },
     perLevel: [
       { damage: 4 },
       { amount: 1, speed: 30 },
@@ -106,7 +106,7 @@ export const WEAPONS: WeaponDef[] = [
     emoji: '🌬️',
     desc: 'Aura etílica que corrói quem chega perto.',
     behavior: 'aura',
-    base: { damage: 5, cooldown: 0, amount: 1, speed: 0, area: 85, duration: 0.4, pierce: 999, knockback: 6 },
+    base: { damage: 6, cooldown: 0, amount: 1, speed: 0, area: 95, duration: 0.4, pierce: 999, knockback: 6 },
     perLevel: [
       { damage: 1, area: 8 },
       { area: 10 },
@@ -124,7 +124,7 @@ export const WEAPONS: WeaponDef[] = [
     emoji: '🥃',
     desc: 'Copos orbitando o jogador em alta rotação.',
     behavior: 'orbit',
-    base: { damage: 9, cooldown: 2.8, amount: 2, speed: 140, area: 12, duration: 2.2, pierce: 999, knockback: 10 },
+    base: { damage: 12, cooldown: 2.6, amount: 2, speed: 140, area: 12, duration: 2.6, pierce: 999, knockback: 10 },
     perLevel: [
       { damage: 3 },
       { amount: 1 },

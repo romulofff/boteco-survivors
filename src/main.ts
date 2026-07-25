@@ -1,5 +1,5 @@
 // Integração: canvas + DPR/letterbox, input, áudio, save, loop fixo.
-import type { GameContext } from './types'
+import type { GameContext, Mode } from './types'
 import { VIEW_W, VIEW_H } from './constants'
 import { makeInput } from './core/input'
 import { SpriteCache } from './core/sprites'
@@ -36,20 +36,50 @@ const audio = new AudioSys()
 const input = makeInput(canvas)
 const save = loadSave()
 const ctx: GameContext = { save, persist: () => persistSave(save) }
-const state = makeGameState(Date.now())
 
-// autoplay policy: inicia o AudioContext no 1º gesto do usuário
-const onFirstGesture = (): void => {
+// ?seed=N → seed determinística p/ testes; senão Date.now()
+const seedParam = new URLSearchParams(window.location.search).get('seed')
+const seedNum = seedParam === null ? NaN : Number(seedParam)
+const state = makeGameState(Number.isFinite(seedNum) ? seedNum : Date.now())
+
+// hook de debug/smoke-test
+;(window as any).__boteco = { state, ctx, save }
+
+// música: intensidade 1 durante a run (playing/levelup/paused), 0 nos menus
+const isGameplay = (m: Mode): boolean => m === 'playing' || m === 'levelup' || m === 'paused'
+let prevMode: Mode = state.mode
+let gestureDone = false
+
+// autoplay policy: inicia o AudioContext (e a música) no 1º gesto do usuário;
+// gestos seguintes só retomam o ctx se o navegador suspender
+const onGesture = (): void => {
   audio.ensureStarted()
+  if (!gestureDone) {
+    gestureDone = true
+    if (state.mode !== 'gameover' && state.mode !== 'win') {
+      audio.setMusicIntensity(isGameplay(state.mode) ? 1 : 0)
+      audio.startMusic()
+    }
+  }
 }
-window.addEventListener('pointerdown', onFirstGesture)
-window.addEventListener('keydown', onFirstGesture)
+window.addEventListener('pointerdown', onGesture)
+window.addEventListener('keydown', onGesture)
 
 startLoop(
   (dt) => {
     const f = input.frame()
     if (f.mute) audio.toggleMute()
     updateGame(state, f, dt, ctx)
+    // transição de mode → música (o remate de win/gameover chega via state.sounds)
+    if (state.mode !== prevMode) {
+      if (state.mode === 'gameover' || state.mode === 'win') {
+        audio.stopMusic()
+      } else if (gestureDone) {
+        audio.setMusicIntensity(isGameplay(state.mode) ? 1 : 0)
+        audio.startMusic() // idempotente; religa ao voltar pro menu/nova run
+      }
+      prevMode = state.mode
+    }
     // drena os sons emitidos pelo gameplay neste step
     for (let i = 0; i < state.sounds.length; i++) audio.play(state.sounds[i])
     state.sounds.length = 0

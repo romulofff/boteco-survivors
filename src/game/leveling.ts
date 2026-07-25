@@ -7,7 +7,9 @@ import { recalcStats } from './weaponsSys'
 import { addText } from './fx'
 
 export function xpForLevel(level: number): number {
-  return XP_BASE + (level - 1) * XP_GROWTH + Math.floor(Math.pow(level, 1.9) * 0.4)
+  // expoente 2.2: níveis altos custam caro — amortece "saltos" quando um bloco
+  // grande de XP chega de uma vez (merge de gems, imã, saideira)
+  return XP_BASE + (level - 1) * XP_GROWTH + Math.floor(Math.pow(level, 2.2) * 0.5)
 }
 
 export function gainXP(s: GameState, v: number): void {
@@ -110,15 +112,18 @@ export function openLevelUp(s: GameState): void {
     else cands.push(opt)
   }
 
-  // upgrades de armas equipadas
+  // upgrades de armas equipadas — peso 2× (aprofundar > diversificar; é o
+  // caminho das evoluções, senão o pool dilui demais no meio da run)
   for (let i = 0; i < s.weapons.length; i++) {
     const w = s.weapons[i]
     if (w.level >= MAX_WEAPON_LEVEL) continue
     const def = weaponById(w.defId)
-    cands.push({
+    const opt: UpgradeOption = {
       kind: 'weapon', id: def.id, name: def.name, emoji: def.emoji,
       desc: deltaDesc(def, w.level), isNew: false,
-    })
+    }
+    cands.push(opt)
+    cands.push(opt)
   }
 
   // upgrades de passivos equipados
@@ -161,8 +166,14 @@ export function openLevelUp(s: GameState): void {
   if (evoFirst) choices.push(evoFirst)
   while (choices.length < 3 && cands.length > 0) {
     const i = s.rng.int(0, cands.length - 1)
-    choices.push(cands[i])
+    const c = cands[i]
     cands.splice(i, 1)
+    // sem duplicatas na mesma tela (cands pode ter entradas com peso 2×)
+    let dup = false
+    for (let j = 0; j < choices.length; j++) {
+      if (choices[j].kind === c.kind && choices[j].id === c.id) { dup = true; break }
+    }
+    if (!dup) choices.push(c)
   }
   if (choices.length === 0) {
     choices.push({ kind: 'heal', id: '', name: 'Caldinho', emoji: '🍲', desc: 'Recupera 30 de HP', isNew: false })

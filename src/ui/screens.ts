@@ -1,5 +1,5 @@
 // Telas: menu, seleção de personagem, loja, level-up, pausa, fim.
-// Só LÊ o GameState. Math.random() permitido (efeito visual).
+// Só LÊ o GameState. Math.random()/performance.now() permitidos (efeito visual).
 // fillText de emoji é aceitável aqui (telas estáticas), mas sprites são preferidos.
 
 import type { Btn, GameState, SaveData, StatKey, UpgradeOption } from '../types'
@@ -13,6 +13,46 @@ import { fmtTime } from './hud'
 
 const FONT = 'system-ui, sans-serif'
 const CX = VIEW_W / 2
+const TAU = Math.PI * 2
+
+// ---------- estado visual local (animações por performance.now) ----------
+
+let prevMode = ''
+let levelupStart = 0
+
+interface Conf {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  rot: number
+  vr: number
+  idx: number
+  size: number
+  phase: number
+}
+const CONFETTI_EMOJI = ['🍻', '🥳', '🎉', '🍺', '🎊']
+const CONFETTI_N = 90
+const confetti: Conf[] = []
+let confettiLast = 0
+
+function initConfetti(): void {
+  confetti.length = 0
+  for (let i = 0; i < CONFETTI_N; i++) {
+    confetti.push({
+      x: Math.random() * VIEW_W,
+      y: -Math.random() * VIEW_H, // começa espalhado acima da tela
+      vx: (Math.random() - 0.5) * 40,
+      vy: 40 + Math.random() * 120,
+      rot: Math.random() * TAU,
+      vr: (Math.random() - 0.5) * 5,
+      idx: (Math.random() * CONFETTI_EMOJI.length) | 0,
+      size: 16 + ((Math.random() * 16) | 0),
+      phase: Math.random() * TAU,
+    })
+  }
+  confettiLast = performance.now()
+}
 
 // ---------- helpers ----------
 
@@ -42,9 +82,21 @@ function drawBtn(ctx: CanvasRenderingContext2D, b: Btn, label: string, selected:
   ctx.textBaseline = 'alphabetic'
 }
 
-/** card sem texto (charselect/shop/levelup) */
-function cardFrame(ctx: CanvasRenderingContext2D, b: Btn, selected: boolean): void {
+/** card sem texto (charselect/shop/levelup); glow dourado opcional (UI estática) */
+function cardFrame(ctx: CanvasRenderingContext2D, b: Btn, selected: boolean, glow = false): void {
   rr(ctx, b.x, b.y, b.w, b.h, 12)
+  if (glow && selected) {
+    ctx.save()
+    ctx.shadowColor = 'rgba(242,193,78,0.85)'
+    ctx.shadowBlur = 24
+    ctx.fillStyle = '#332a30'
+    ctx.fill()
+    ctx.restore()
+    ctx.lineWidth = 3
+    ctx.strokeStyle = COLOR_GOLD
+    ctx.stroke()
+    return
+  }
   ctx.fillStyle = '#2a2126'
   ctx.fill()
   ctx.lineWidth = 2
@@ -121,11 +173,20 @@ function equippedLevel(s: GameState, opt: UpgradeOption): number {
 
 // ---------- telas ----------
 
-function drawMenu(ctx: CanvasRenderingContext2D, s: GameState, save: SaveData): void {
+function drawMenu(ctx: CanvasRenderingContext2D, s: GameState, save: SaveData, sprites: SpriteCache): void {
   // véu de COLOR_BG (deixa o padrão do fundo aparecer de leve)
   ctx.globalAlpha = 0.7
   ctx.fillStyle = COLOR_BG
   ctx.fillRect(0, 0, VIEW_W, VIEW_H)
+  ctx.globalAlpha = 1
+
+  // 🍺 pixelado gigante de fundo (sprite pequeno ampliado sem smoothing)
+  const beer = sprites.get('🍺', 24)
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.globalAlpha = 0.06
+  ctx.drawImage(beer, CX - 210, 80, 420, 420)
+  ctx.restore()
   ctx.globalAlpha = 1
 
   ctx.textAlign = 'center'
@@ -151,6 +212,9 @@ function drawMenu(ctx: CanvasRenderingContext2D, s: GameState, save: SaveData): 
   ctx.font = '13px ' + FONT
   ctx.fillStyle = '#6f676c'
   ctx.fillText('WASD/setas mover · ataque automático · P pausa · M som', CX, 508)
+  ctx.font = '11px ' + FONT
+  ctx.fillStyle = '#524b50'
+  ctx.fillText('© Boteco Survivors v0.9', CX, 530)
 }
 
 function drawCharSelect(ctx: CanvasRenderingContext2D, s: GameState, sprites: SpriteCache): void {
@@ -274,6 +338,7 @@ function drawShop(ctx: CanvasRenderingContext2D, s: GameState, sprites: SpriteCa
 
 function drawLevelUp(ctx: CanvasRenderingContext2D, s: GameState, sprites: SpriteCache): void {
   overlay(ctx, 0.65)
+  const now = performance.now()
 
   ctx.textAlign = 'center'
   ctx.font = 'bold 32px ' + FONT
@@ -286,7 +351,19 @@ function drawLevelUp(ctx: CanvasRenderingContext2D, s: GameState, sprites: Sprit
     const opt = opts[i]
     const b = rects[i]
     const cx = b.x + b.w / 2
-    cardFrame(ctx, b, s.ui.sel === i)
+    const cy = b.y + b.h / 2
+
+    // zoom-in ao aparecer (stagger leve por card, ease-out)
+    const k = Math.min(1, Math.max(0, (now - levelupStart - i * 45) / 170))
+    const ease = 1 - (1 - k) * (1 - k) * (1 - k)
+    const scale = 0.86 + 0.14 * ease
+    ctx.save()
+    ctx.globalAlpha = ease
+    ctx.translate(cx, cy)
+    ctx.scale(scale, scale)
+    ctx.translate(-cx, -cy)
+
+    cardFrame(ctx, b, s.ui.sel === i, true)
 
     const img = sprites.get(opt.emoji, 48)
     ctx.drawImage(img, cx - img.width / 2, b.y + 52 - img.height / 2)
@@ -302,18 +379,26 @@ function drawLevelUp(ctx: CanvasRenderingContext2D, s: GameState, sprites: Sprit
     }
 
     // tag
-    ctx.font = 'bold 14px ' + FONT
     if (opt.kind === 'evolution') {
-      // pulso via relógio real (s.time congela no level-up)
-      ctx.globalAlpha = 0.65 + 0.35 * Math.sin(Date.now() * 0.008)
+      // pílula dourada pulsante (relógio real: s.time congela no level-up)
+      const pulse = 0.8 + 0.2 * Math.sin(now * 0.009)
+      const pw = 108 * pulse
+      const ph = 24 * pulse
+      rr(ctx, cx - pw / 2, b.y + 148 - 16 * pulse, pw, ph, ph / 2)
+      ctx.globalAlpha = ease * (0.75 + 0.25 * Math.sin(now * 0.009))
       ctx.fillStyle = COLOR_GOLD
+      ctx.fill()
+      ctx.globalAlpha = ease
+      ctx.font = 'bold ' + ((13 * pulse) | 0) + 'px ' + FONT
+      ctx.fillStyle = '#2a1c08'
       ctx.fillText('EVOLUÇÃO!', cx, b.y + 148)
-      ctx.globalAlpha = 1
     } else if (opt.isNew && (opt.kind === 'weapon' || opt.kind === 'passive')) {
+      ctx.font = 'bold 14px ' + FONT
       ctx.fillStyle = '#7ae582'
       ctx.fillText('NOVO!', cx, b.y + 148)
     } else if (opt.kind === 'weapon' || opt.kind === 'passive') {
       const l = equippedLevel(s, opt)
+      ctx.font = 'bold 14px ' + FONT
       ctx.fillStyle = '#58c1e8'
       ctx.fillText('Nv ' + l + ' → ' + (l + 1), cx, b.y + 148)
     }
@@ -326,8 +411,12 @@ function drawLevelUp(ctx: CanvasRenderingContext2D, s: GameState, sprites: Sprit
       ctx.fillText(lines[l], cx, y)
       y += 18
     }
+
+    ctx.restore()
   }
 
+  ctx.globalAlpha = 1
+  ctx.textAlign = 'center'
   ctx.font = '14px ' + FONT
   ctx.fillStyle = '#8a8288'
   ctx.fillText('1/2/3 ou clique', CX, 462)
@@ -354,18 +443,34 @@ function drawPaused(ctx: CanvasRenderingContext2D, s: GameState): void {
   drawBtn(ctx, rects[1], 'Desistir e voltar', s.ui.sel === 1)
 }
 
-const CONFETTI = ['🍻', '🥳', '🎉']
-
 function drawEnd(ctx: CanvasRenderingContext2D, s: GameState, sprites: SpriteCache, win: boolean): void {
   overlay(ctx, 0.75)
   if (win) {
     ctx.fillStyle = 'rgba(242,193,78,0.07)'
     ctx.fillRect(0, 0, VIEW_W, VIEW_H)
-    // chuva de confete (visual, posições novas a cada frame)
-    for (let i = 0; i < 26; i++) {
-      const img = sprites.get(CONFETTI[(Math.random() * CONFETTI.length) | 0], 24)
-      ctx.globalAlpha = 0.08 + Math.random() * 0.16
-      ctx.drawImage(img, Math.random() * VIEW_W - 12, Math.random() * VIEW_H - 12)
+
+    // confete denso caindo com gravidade (estado local do módulo)
+    const now = performance.now()
+    const dt = Math.min(0.05, (now - confettiLast) / 1000)
+    confettiLast = now
+    for (let i = 0; i < confetti.length; i++) {
+      const c = confetti[i]
+      c.vy = Math.min(300, c.vy + 170 * dt)
+      c.x += c.vx * dt + Math.sin(c.y * 0.02 + c.phase) * 26 * dt
+      c.y += c.vy * dt
+      c.rot += c.vr * dt
+      if (c.y > VIEW_H + 30) {
+        c.y = -30
+        c.x = Math.random() * VIEW_W
+        c.vy = 40 + Math.random() * 80
+      }
+      const img = sprites.get(CONFETTI_EMOJI[c.idx], c.size)
+      ctx.save()
+      ctx.globalAlpha = 0.85
+      ctx.translate(c.x, c.y)
+      ctx.rotate(c.rot)
+      ctx.drawImage(img, -img.width / 2, -img.height / 2)
+      ctx.restore()
     }
     ctx.globalAlpha = 1
   }
@@ -373,8 +478,13 @@ function drawEnd(ctx: CanvasRenderingContext2D, s: GameState, sprites: SpriteCac
   ctx.textAlign = 'center'
   if (win) {
     ctx.font = 'bold 42px ' + FONT
+    ctx.lineJoin = 'round'
+    ctx.lineWidth = 6
+    ctx.strokeStyle = 'rgba(20,10,4,0.85)'
+    ctx.strokeText('FECHOU O BAR! 🍻', CX, 185)
     ctx.fillStyle = COLOR_GOLD
     ctx.fillText('FECHOU O BAR! 🍻', CX, 185)
+    ctx.lineJoin = 'miter'
   } else {
     ctx.font = 'bold 40px ' + FONT
     ctx.fillStyle = COLOR_HP
@@ -407,9 +517,16 @@ export function drawScreens(
   sprites: SpriteCache,
   save: SaveData,
 ): void {
+  // transições de modo → dispara animações locais (zoom do level-up, confete)
+  if (s.mode !== prevMode) {
+    if (s.mode === 'levelup') levelupStart = performance.now()
+    else if (s.mode === 'win') initConfetti()
+    prevMode = s.mode
+  }
+
   switch (s.mode) {
     case 'menu':
-      drawMenu(ctx, s, save)
+      drawMenu(ctx, s, save, sprites)
       break
     case 'charselect':
       drawCharSelect(ctx, s, sprites)

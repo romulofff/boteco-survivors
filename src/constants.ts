@@ -10,7 +10,9 @@ export const WIN_TIME = 1200
 export const FIXED_DT = 1 / 60
 
 // ---------- caps de pool ----------
-export const CAP_ENEMIES = 600
+export const CAP_ENEMIES = 900
+/** acima desta fração do cap o spawner degrada com elegância (spawner.ts) */
+export const SPAWN_SOFT_CAP = 0.9
 export const CAP_PROJECTILES = 800
 export const CAP_ZONES = 64
 export const CAP_GEMS = 1500
@@ -27,7 +29,7 @@ export const MAX_WEAPON_LEVEL = 8
 export const PLAYER_RADIUS = 14
 /** px/s antes do multiplicador speed */
 export const PLAYER_BASE_SPEED = 150
-export const PLAYER_IFRAMES = 0.6
+export const PLAYER_IFRAMES = 0.75
 export const BASE_STATS: PlayerStats = {
   might: 1,
   armor: 0,
@@ -39,12 +41,12 @@ export const BASE_STATS: PlayerStats = {
   duration: 1,
   amount: 0,
   cooldown: 1,
-  magnet: 70,
+  magnet: 100,
   greed: 1,
 }
 
 // ---------- XP / nível ----------
-export const XP_BASE = 6
+export const XP_BASE = 5
 export const XP_GROWTH = 8
 /** tiers de amendoim (valor mínimo p/ usar o tier) */
 export const GEM_TIERS = [1, 5, 25, 100]
@@ -55,22 +57,33 @@ export const SPAWN_MARGIN = 60
 /** s entre elites (a partir de ELITE_START) */
 export const ELITE_INTERVAL = 90
 export const ELITE_START = 240
-export const ELITE_HP_MULT = 8
+/** 6× (não 8×): elite precisa morrer p/ build mediano também — é dele que sai
+ * marmita + ouro do late game; com 8× builds sem evolução nunca matavam os tardios */
+export const ELITE_HP_MULT = 6
 export const ELITE_SIZE_MULT = 1.6
-/** escala global de HP dos inimigos com o tempo (min 0 → 1x, min 20 → ~3.4x) */
+/** escala global de HP dos inimigos com o tempo (min 0 → 1x, min 20 → ~3.2x) */
 export function enemyHpScale(time: number): number {
   const m = time / 60
-  return 1 + m * 0.08 + Math.max(0, m - 10) * 0.08
+  return 1 + m * 0.07 + Math.max(0, m - 10) * 0.08
 }
 
 // ---------- drops ----------
 export const DROP_CALDINHO = 0.015
-export const DROP_DINHEIRO = 0.02
-export const DROP_IMA = 0.002
+export const DROP_DINHEIRO = 0.007
+export const DROP_DINHEIRO_MIN = 4
+export const DROP_DINHEIRO_MAX = 8
+export const DROP_IMA = 0.001
 export const CALDINHO_HEAL = 30
-export const SAIDEIRA_DAMAGE = 300
-export const MARMITA_GOLD_MIN = 20
-export const MARMITA_GOLD_MAX = 60
+export const SAIDEIRA_DAMAGE = 500
+export const MARMITA_GOLD_MIN = 12
+export const MARMITA_GOLD_MAX = 26
+/** ouro direto (sem pickup) ao matar elite/chefe — garante economia mesmo kitando.
+ * Elite: escala com o xp do elite (cresce ao longo da run → vitória paga bem
+ * mais que morte no min 12, sem inflar o early game). */
+export const GOLD_ELITE_PER_XP = 0.35
+export const GOLD_ELITE_MIN = 10
+/** ouro direto do chefe = xp do chefe × este fator (50..200 xp → 20..80 ouro) */
+export const GOLD_BOSS_PER_XP = 0.4
 
 // ---------- combate ----------
 /** s entre ticks de aura */

@@ -1,6 +1,6 @@
 // Passivos — deltas ADITIVOS por nível sobre PlayerStats.
 // maxHp e magnet são valores ABSOLUTOS (não multiplicadores): os deltas
-// abaixo equivalem aos % do GDD sobre a base (maxHp 100, magnet 70).
+// abaixo equivalem aos % do GDD sobre a base (maxHp 100, magnet 100).
 
 import type { PassiveDef } from '../types'
 
@@ -75,7 +75,7 @@ export const PASSIVES: PassiveDef[] = [
     desc: '+30% raio de coleta por nível.',
     maxLevel: 5,
     stat: 'magnet',
-    perLevel: 21, // 30% de 70 px
+    perLevel: 30, // 30% de 100 px
   },
   {
     id: 'fiado',

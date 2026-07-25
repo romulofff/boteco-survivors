@@ -1,5 +1,8 @@
 // Efeitos: partículas, textos flutuantes, shake, saideira flash.
+// NOTA de determinismo: spawnBurst consome EXATAMENTE 4 rolls de rng por
+// partícula — não mudar a contagem (alteraria o stream de gameplay).
 import type { GameState } from '../types'
+import { COLOR_GOLD, COLOR_HEAL, COLOR_HP } from '../constants'
 
 const TAU = Math.PI * 2
 
@@ -10,12 +13,13 @@ export function spawnBurst(s: GameState, x: number, y: number, color: string, n:
     p.x = x
     p.y = y
     const a = s.rng.next() * TAU
-    const spd = 40 + s.rng.next() * 140
+    // pop mais violento: partículas saem rápido e frenam (velDecay no update)
+    const spd = 70 + s.rng.next() * 220
     p.vx = Math.cos(a) * spd
-    p.vy = Math.sin(a) * spd
-    p.ttl = 0.3 + s.rng.next() * 0.2
+    p.vy = Math.sin(a) * spd - 30 // leve bias pra cima (celebração)
+    p.ttl = 0.28 + s.rng.next() * 0.3
     p.age = 0
-    p.size = 2 + s.rng.next() * 2
+    p.size = 2 + s.rng.next() * 3.5
     p.color = color
   }
 }
@@ -25,11 +29,24 @@ export function addText(s: GameState, x: number, y: number, text: string, color:
   t.active = true
   t.x = x
   t.y = y
-  t.ttl = 0.7
   t.age = 0
   t.text = text
   t.color = color
-  t.size = 13
+  // tamanho/vida por semântica da cor (call sites de game/* não mudam):
+  // dano no player = vermelho maior; cura = verde médio; ouro = destaque leve.
+  if (color === COLOR_HP) {
+    t.size = 19
+    t.ttl = 0.9
+  } else if (color === COLOR_HEAL) {
+    t.size = 16
+    t.ttl = 0.85
+  } else if (color === COLOR_GOLD) {
+    t.size = 15
+    t.ttl = 0.8
+  } else {
+    t.size = 13
+    t.ttl = 0.7
+  }
 }
 
 export function shake(s: GameState, amt: number): void {
@@ -49,6 +66,7 @@ export function updateFx(s: GameState, dt: number): void {
     p.y += p.vy * dt
     p.vx *= velDecay
     p.vy *= velDecay
+    p.vy += 90 * dt // gravidade leve: faíscas caem no fim
   }
 
   const ts = s.texts.items
@@ -57,7 +75,7 @@ export function updateFx(s: GameState, dt: number): void {
     if (!t.active) continue
     t.age += dt
     if (t.age >= t.ttl) { t.active = false; continue }
-    t.y -= 42 * dt
+    t.y -= 46 * dt
   }
 
   if (s.camera.shake > 0) {

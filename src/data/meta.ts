@@ -1,12 +1,13 @@
 // Meta-progressão "A Caderneta" — upgrades permanentes comprados com ouro.
-// Custo agressivo: nível 1 ≈ 60–120, cada nível ~2.1× o anterior.
+// Calibração: nível 1 ≈ 40–60; uma VITÓRIA (~350–800 de ouro) financia 3–5
+// níveis; uma morte mediana (~100–350) financia 1–3.
 // maxHp/magnet/regen são deltas ABSOLUTOS (equivalem aos % do GDD sobre a base).
 
 import type { MetaUpgradeDef } from '../types'
 
-/** custo(n) = base × 2.1^(n−1), arredondado */
+/** custo(n) = base × 1.9^(n−1), arredondado */
 function costCurve(base: number): (level: number) => number {
-  return (level: number) => Math.round(base * Math.pow(2.1, level - 1))
+  return (level: number) => Math.round(base * Math.pow(1.9, level - 1))
 }
 
 export const META_UPGRADES: MetaUpgradeDef[] = [
@@ -18,7 +19,7 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     maxLevel: 5,
     stat: 'might',
     perLevel: 0.05,
-    cost: costCurve(90),
+    cost: costCurve(60),
   },
   {
     id: 'm_hp',
@@ -28,7 +29,7 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     maxLevel: 5,
     stat: 'maxHp',
     perLevel: 10, // 10% de 100
-    cost: costCurve(80),
+    cost: costCurve(55),
   },
   {
     id: 'm_veloc',
@@ -38,7 +39,7 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     maxLevel: 3,
     stat: 'speed',
     perLevel: 0.04,
-    cost: costCurve(70),
+    cost: costCurve(45),
   },
   {
     id: 'm_ima',
@@ -47,8 +48,8 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     desc: '+15% raio de coleta por nível.',
     maxLevel: 3,
     stat: 'magnet',
-    perLevel: 10.5, // 15% de 70 px
-    cost: costCurve(60),
+    perLevel: 15, // 15% de 100 px
+    cost: costCurve(40),
   },
   {
     id: 'm_sorte',
@@ -58,7 +59,7 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     maxLevel: 3,
     stat: 'greed',
     perLevel: 0.08,
-    cost: costCurve(75),
+    cost: costCurve(50),
   },
   {
     id: 'm_regen',
@@ -68,7 +69,7 @@ export const META_UPGRADES: MetaUpgradeDef[] = [
     maxLevel: 3,
     stat: 'regen',
     perLevel: 0.2,
-    cost: costCurve(70),
+    cost: costCurve(45),
   },
 ]
 

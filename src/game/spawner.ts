@@ -1,8 +1,8 @@
 // Spawner: ondas contínuas, mínimo de pressão, elites periódicos e eventos.
 import type { Enemy, EventDef, GameState, WaveDef } from '../types'
 import {
-  ELITE_HP_MULT, ELITE_INTERVAL, ELITE_SIZE_MULT, SPAWN_MARGIN, VIEW_H, VIEW_W,
-  enemyHpScale,
+  CAP_ENEMIES, ELITE_HP_MULT, ELITE_INTERVAL, ELITE_SIZE_MULT, SPAWN_MARGIN,
+  SPAWN_SOFT_CAP, VIEW_H, VIEW_W, enemyHpScale,
 } from '../constants'
 import { ENEMIES, enemyIndexById } from '../data/enemies'
 import { EVENTS, WAVES } from '../data/waves'
@@ -71,13 +71,29 @@ function spawnElite(s: GameState, wave: WaveDef): void {
   e.elite = true
 }
 
+/** chefe NUNCA pode ser engolido pelo cap: abre espaço matando um comum */
+function freeSlotForBoss(s: GameState): void {
+  const items = s.enemies.items
+  for (let i = 0; i < items.length; i++) {
+    const e = items[i]
+    if (e.active && !e.boss && !e.elite) {
+      e.active = false
+      return
+    }
+  }
+}
+
 function runEvent(s: GameState, ev: EventDef): void {
   const px = s.player.x
   const py = s.player.y
   const defIdx = enemyIndexById(ev.enemy)
   if (ev.kind === 'boss') {
     const a = s.rng.next() * TAU
-    const e = spawnAt(s, defIdx, px + Math.cos(a) * SPAWN_RADIUS, py + Math.sin(a) * SPAWN_RADIUS)
+    let e = spawnAt(s, defIdx, px + Math.cos(a) * SPAWN_RADIUS, py + Math.sin(a) * SPAWN_RADIUS)
+    if (!e) {
+      freeSlotForBoss(s)
+      e = spawnAt(s, defIdx, px + Math.cos(a) * SPAWN_RADIUS, py + Math.sin(a) * SPAWN_RADIUS)
+    }
     if (!e) return
     const def = ENEMIES[defIdx]
     e.hp = ev.bossHp ?? def.hp * 60 // boss sem escala de tempo
@@ -110,23 +126,33 @@ export function updateSpawner(s: GameState, dt: number): void {
   const wave = currentWave(s.time)
   const px = s.player.x
   const py = s.player.y
+  const alive = s.enemies.count()
+
+  // degradação elegante perto do cap: acima de SPAWN_SOFT_CAP o fluxo
+  // contínuo cai pela metade e o minCount deixa de completar
+  const crowded = alive >= CAP_ENEMIES * SPAWN_SOFT_CAP
+  const interval = crowded ? wave.interval * 2 : wave.interval
+  const batch = crowded ? Math.max(1, wave.batch >> 1) : wave.batch
 
   // spawn contínuo da onda
   sp.acc += dt
   let guard = 0
-  while (sp.acc >= wave.interval && guard < 20) {
-    sp.acc -= wave.interval
-    for (let i = 0; i < wave.batch; i++) spawnWaveEnemy(s, wave)
+  while (sp.acc >= interval && guard < 20) {
+    sp.acc -= interval
+    for (let i = 0; i < batch; i++) spawnWaveEnemy(s, wave)
     guard++
   }
 
-  // completa até o mínimo de pressão
-  const alive = s.enemies.count()
-  if (alive < wave.minCount) {
-    const need = wave.minCount - alive
+  // completa até o mínimo de pressão — em ARCO e com taxa limitada.
+  // (Nunca despejar o déficit inteiro num frame como anel fechado: isso
+  // cercava o jogador instantaneamente toda vez que alive caía do mínimo.)
+  if (!crowded && alive < wave.minCount && s.frame % 15 === 0) {
+    let need = wave.minCount - alive
+    const capFill = wave.batch * 2
+    if (need > capFill) need = capFill
     const base = s.rng.next() * TAU
     for (let i = 0; i < need; i++) {
-      const a = base + (i * TAU) / need
+      const a = base + (s.rng.next() - 0.5) * 1.2 // arco de ~70°
       const idx = enemyIndexById(s.rng.pick(wave.enemies))
       spawnAt(s, idx, px + Math.cos(a) * SPAWN_RADIUS, py + Math.sin(a) * SPAWN_RADIUS)
     }

@@ -5,18 +5,19 @@
 
 ## Em andamento
 
-- (F2+F3+F4) Workflow `wf_6a487b32-64c`: 5 builders paralelos (core/data/game/ui/sim-tests) → integrador (main.ts, typecheck, testes, build). Inclui F3 e F4.
+- (F5) Workflow `wf_4dadf6ce-656`: balance (sim multi-seed, alvos de densidade/ouro/dificuldade) · game-feel (ui/fx) · áudio+música+debug hook · verificador (deep smoke com screenshots de todas as telas).
 
 ## Backlog
-- (F5) Workflow polish: áudio, game feel/FX, loja meta, balanceamento via sim
 - (F6) Workflow QA: revisões (bugs/perf/UX/balance) + verificação adversarial + fixes
-- (F7) Smoke test browser real (playwright) + screenshots inspecionados
+- (F7b) Re-smoke pós-F6 + inspeção visual final minha
 - (F8) Build final single-file + README + entrega
 
 ## Feito
 
 - (F0) Scaffold: git, package.json, tsconfig, vite(+singlefile), index.html, npm install
 - (F1) Fundação: GDD, ARCHITECTURE, types.ts, constants.ts, ui/layout.ts, kanban — commit 801bf73
+- (F2/3/4) Implementação + integração via workflow: 39 testes verdes, build 60KB, sim vence run 20min — commit c3b9150
+- (F7a) Smoke playwright inicial: 0 erros console, ~121fps, screenshots ok (menus/HUD/pausa/gameplay). Achados → alimentaram o F5.
 
 ## Decisões
 

@@ -2,7 +2,8 @@
 import type { GameState, Pickup, PickupKind } from '../types'
 import {
   CALDINHO_HEAL, CAP_GEMS, COLOR_GOLD, COLOR_HEAL, DROP_CALDINHO, DROP_DINHEIRO,
-  DROP_IMA, MARMITA_GOLD_MAX, MARMITA_GOLD_MIN, SAIDEIRA_DAMAGE,
+  DROP_DINHEIRO_MAX, DROP_DINHEIRO_MIN, DROP_IMA, GOLD_BOSS_PER_XP, GOLD_ELITE_MIN,
+  GOLD_ELITE_PER_XP, MARMITA_GOLD_MAX, MARMITA_GOLD_MIN, SAIDEIRA_DAMAGE,
 } from '../constants'
 import { addText, shake, spawnBurst } from './fx'
 import { findEvolution, evolveWeapon } from './leveling'
@@ -75,13 +76,26 @@ export function killEnemy(s: GameState, idx: number): void {
   if (e.boss) {
     dropPickup(s, 'marmita', e.x - 20, e.y, 0)
     dropPickup(s, 'saideira', e.x + 20, e.y, 0)
+    // ouro direto: recompensa garantida mesmo se o jogador estiver kitando longe
+    const v = Math.round(e.xp * GOLD_BOSS_PER_XP * s.player.stats.greed)
+    s.player.gold += v
+    s.goldEarned += v
+    s.sounds.push('gold')
+    addText(s, e.x, e.y - 30, '+' + v + ' 🪙', COLOR_GOLD)
     s.spawn.bossIdx = -1
     shake(s, 8)
   } else if (e.elite) {
     dropPickup(s, 'marmita', e.x, e.y, 0)
+    // e.xp do elite já vem ×10 do spawner: elite cedo ~30xp → ~10 ouro; tardio ~100xp → ~28
+    const v = Math.round(Math.max(GOLD_ELITE_MIN, e.xp * GOLD_ELITE_PER_XP) * s.player.stats.greed)
+    s.player.gold += v
+    s.goldEarned += v
+    addText(s, e.x, e.y - 20, '+' + v + ' 🪙', COLOR_GOLD)
   } else {
     if (s.rng.chance(DROP_CALDINHO)) dropPickup(s, 'caldinho', e.x, e.y, 0)
-    if (s.rng.chance(DROP_DINHEIRO)) dropPickup(s, 'dinheiro', e.x, e.y, s.rng.int(5, 15))
+    if (s.rng.chance(DROP_DINHEIRO)) {
+      dropPickup(s, 'dinheiro', e.x, e.y, s.rng.int(DROP_DINHEIRO_MIN, DROP_DINHEIRO_MAX))
+    }
     if (s.rng.chance(DROP_IMA)) dropPickup(s, 'ima', e.x, e.y, 0)
   }
 }
