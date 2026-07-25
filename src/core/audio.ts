@@ -91,6 +91,9 @@ export class AudioSys {
   private musicTick(): void {
     const ctx = this.ctx
     if (!ctx) return
+    // stall/throttle da main thread (drag de janela, GC, aba oculta): descarta
+    // o backlog perdido em vez de agendar dezenas de notas no passado de uma vez
+    if (this.nextNoteTime < ctx.currentTime) this.nextNoteTime = ctx.currentTime
     while (this.nextNoteTime < ctx.currentTime + LOOKAHEAD) {
       this.scheduleStep(this.step, this.nextNoteTime)
       this.nextNoteTime += STEP

@@ -111,7 +111,7 @@ export function makeGameState(seed: number): GameState {
     result: 'none',
     saideiraFlash: 0,
     sounds: [],
-    ui: { sel: 0, usingMouse: false },
+    ui: { sel: 0, usingMouse: false, lockT: 0 },
     damageDealt: 0,
     goldEarned: 0,
   }

@@ -235,6 +235,15 @@ function fireOne(s: GameState, wi: number, w: EquippedWeapon, def: WeaponDef, ef
 }
 
 function fireOrbit(s: GameState, wi: number, w: EquippedWeapon, eff: WeaponStats): void {
+  // desativa o conjunto anterior DESTA arma: o anel é sempre `amount` copos,
+  // recriados a cada cooldown ("sempre ativos" sem gap). Sem isso, a evoluída
+  // (duration 999) acumularia +amount copos por volley até saturar o pool e
+  // matar de fome todas as outras armas de projétil.
+  const items = s.projectiles.items
+  for (let i = 0; i < items.length; i++) {
+    const prev = items[i]
+    if (prev.active && prev.kind === 'orbit' && prev.weaponIdx === wi) prev.active = false
+  }
   const n = Math.max(1, Math.round(eff.amount))
   const orbitR = 85 * s.player.stats.area
   for (let i = 0; i < n; i++) {

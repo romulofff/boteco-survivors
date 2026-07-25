@@ -139,6 +139,9 @@ export function updateCollisions(s: GameState, dt: number): void {
       const d = Math.sqrt(dSq) || 1
       p.hitMap.set(idx, s.time + REHIT_INTERVAL)
       damageEnemy(s, idx, p.damage, dx / d, dy / d, p.knockback * KB_SCALE)
+      // matou: solta o cooldown de rehit do slot — um inimigo novo reciclado
+      // no mesmo índice do pool não pode herdar a imunidade do morto
+      if (!e.active) p.hitMap.delete(idx)
       if (!persistent) {
         p.pierce -= 1
         if (p.pierce < 0) { p.active = false; break }

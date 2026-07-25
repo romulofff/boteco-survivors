@@ -417,8 +417,9 @@ export interface GameState {
   saideiraFlash: number
   /** sons emitidos neste frame; main.ts drena */
   sounds: SoundId[]
-  /** estado de navegação de UI (índice selecionado na tela corrente) */
-  ui: { sel: number; usingMouse: boolean }
+  /** estado de navegação de UI (índice selecionado na tela corrente);
+   * lockT: grace period (s) que ignora clique/confirm ao abrir o level-up */
+  ui: { sel: number; usingMouse: boolean; lockT: number }
   /** total de dano causado (relatórios) */
   damageDealt: number
   /** ouro ganho na run (para tela final) */

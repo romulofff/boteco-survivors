@@ -62,7 +62,7 @@ Regras de evolução (estilo VS simplificado): arma no nível 8 + passivo par em
 ## 6. Inimigos
 
 Escalonamento global de HP com o tempo da run (multiplicador definido em `constants.ts`).
-Elites: a cada ~90s após 4:00, versão elite do inimigo mais forte da onda (8× HP, 1.6× tamanho, dropa Marmita 📦).
+Elites: a cada ~90s após 4:00, versão elite do inimigo mais forte da onda (6× HP — com 8× builds medianos não matavam os tardios —, 1.6× tamanho, dropa Marmita 📦).
 
 | id | Nome | Emoji | Comportamento | Perfil |
 |---|---|---|---|---|
@@ -94,12 +94,12 @@ Sobreviveu até 20:00 → vitória.
 - **Caldinho 🍲**: cura 30 HP (chance em inimigos médios+).
 - **Dinheiro 💰**: ouro (chance pequena; valor × ganância).
 - **Imã 🧲**: atrai TODOS os amendoins do mapa (raro).
-- **Saideira 🍻**: limpa a tela — dano massivo em todos os inimigos não-chefe (raro, chefes/elites).
+- **Saideira 🍻**: limpa a tela — dano massivo em todos os inimigos não-chefe (garantida: 1 por chefe).
 - **Marmita 📦**: "baú" — ouro + upgrade instantâneo de arma (evolução se elegível). Dropada por elites/chefes.
 
 ## 8. Progressão da run
 
-- Curva de XP: `xpForLevel` em `game/leveling.ts` (base 6, crescimento suave; ver constants).
+- Curva de XP: `xpForLevel` em `game/leveling.ts` (base 5, crescimento suave; ver constants).
 - Level-up: 3 opções. Pool: armas novas (se slot livre), passivos novos (se slot livre), upgrades dos equipados, evolução elegível (prioridade). Sem opção válida → "Caldinho" (cura 30) / "Gorjeta" (+25 ouro).
 - Timeline de ondas em `data/waves.ts`: composição muda a cada ~60–90s, intensidade cresce, bursts e anéis de spawn em momentos-chave (ver tabela no arquivo).
 

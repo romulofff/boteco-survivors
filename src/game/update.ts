@@ -196,7 +196,11 @@ export function updateGame(s: GameState, input: InputFrame, dt: number, ctx: Gam
       }
       let act = pointerAct(s, input, rects)
       if (input.num >= 1 && input.num <= n) act = 'opt' + (input.num - 1)
-      if (act && act.startsWith('opt')) {
+      // grace period: hover/navegação funcionam, mas ativação é ignorada logo
+      // após abrir a tela (evita duplo clique/spam gastando escolhas às cegas)
+      if (s.ui.lockT > 0) {
+        s.ui.lockT -= dt
+      } else if (act && act.startsWith('opt')) {
         const i = parseInt(act.slice(3), 10)
         const opt = s.upgradeChoices[i]
         if (opt) applyUpgrade(s, opt)

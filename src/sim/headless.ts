@@ -170,6 +170,7 @@ export function runHeadless(opts: RunHeadlessOpts): SimReportX {
     }
 
     updateGame(state, input, FIXED_DT, ctx)
+    state.sounds.length = 0 // drena como main.ts — senão cresce O(frames)
     frame++
 
     if (state.player.hp < minHpRun) minHpRun = state.player.hp

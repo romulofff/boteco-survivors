@@ -183,6 +183,9 @@ export function openLevelUp(s: GameState): void {
   s.upgradeChoices = choices
   s.mode = 'levelup'
   s.ui.sel = 0
+  // grace period: bloqueia clique/confirm herdado de spam (level-ups em fila
+  // reabrem a tela no mesmo frame com cards na mesma posição)
+  s.ui.lockT = 0.25
   s.sounds.push('levelup')
 }
 
@@ -218,7 +221,7 @@ export function applyUpgrade(s: GameState, opt: UpgradeOption): void {
       break
     }
     case 'gold': {
-      const v = 25 * p.stats.greed
+      const v = Math.round(25 * p.stats.greed)
       p.gold += v
       s.goldEarned += v
       s.sounds.push('gold')
