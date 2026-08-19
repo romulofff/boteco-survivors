@@ -6,7 +6,9 @@ bêbados, cunhados palpiteiros — e a Sogra no final.
 
 ## Como jogar
 
-**Jeito mais fácil:** abra `dist/index.html` no navegador (duplo clique).
+**▶️ [Jogue no navegador](https://romulofff.github.io/boteco-survivors/)** — nada pra instalar.
+
+**Offline:** rode `npm install && npm run build` e abra `dist/index.html` (duplo clique).
 O build é um arquivo único, auto-contido, sem servidor nem internet.
 
 **Modo dev:**
