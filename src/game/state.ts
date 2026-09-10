@@ -111,7 +111,11 @@ export function makeGameState(seed: number): GameState {
     result: 'none',
     saideiraFlash: 0,
     sounds: [],
-    ui: { sel: 0, usingMouse: false, lockT: 0 },
+    ui: {
+      sel: 0, usingMouse: false, lockT: 0,
+      touchMode: false, muted: false, moved: false, quitArmed: 0,
+      stick: { active: false, id: -1, ox: 0, oy: 0, kx: 0, ky: 0, engaged: false, mx: 0, my: 0 },
+    },
     damageDealt: 0,
     goldEarned: 0,
   }
@@ -149,6 +153,19 @@ export function startRun(s: GameState, charId: string, save: SaveData): void {
   s.camera.y = 0
   s.camera.shake = 0
   s.ui.sel = 0
+  s.ui.moved = false
+  s.ui.quitArmed = 0
+  // stick: zera os campos (não troca o objeto — ui/touchui lê a mesma referência)
+  const st = s.ui.stick
+  st.active = false
+  st.id = -1
+  st.ox = 0
+  st.oy = 0
+  st.kx = 0
+  st.ky = 0
+  st.engaged = false
+  st.mx = 0
+  st.my = 0
 
   const p = s.player
   p.x = 0

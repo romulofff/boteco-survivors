@@ -11,10 +11,11 @@
 4. **Pools, não GC**: inimigos/projéteis/gems/partículas vêm de pools pré-alocados (`core/pool.ts`), flag `active`. Hot paths com `for` clássico, sem alocar por frame (sem `.map/.filter`, sem closures novas, sem spread).
 5. **Sons sem DOM**: gameplay empurra `SoundId` em `state.sounds`; `main.ts` drena e toca via `core/audio.ts`.
 6. **UI em pt-BR**, código/comentários em pt-BR curtos, nomes de símbolos em inglês.
+7. **Input touch**: o gesto é decidido em código puro (`core/pointers.ts` → slots; `game/touchstick.ts` → stick). Um slot que virou stick **nunca gera tap** (`slot.stick`). Ponteiros NÃO são resetados em transição de mode (o dedo do stick sobrevive a level-up/pausa); reset só em `blur`, aba oculta e retrato. `main.ts` sincroniza mute (`ui.muted` → `AudioSys.setMuted`), wake lock, fullscreen e back trap.
 
 ## Resolução lógica
 
-Canvas lógico **960×540** (`VIEW_W`/`VIEW_H`), escalado ao tamanho da janela com DPR em `main.ts` (letterbox). Todo código de UI usa coordenadas lógicas; `InputFrame.mouseX/Y` já vem em coordenadas lógicas.
+Canvas lógico **960×540** (`VIEW_W`/`VIEW_H`), escalado ao tamanho da janela com DPR em `main.ts` (letterbox, `left/top` inteiros). Todo código de UI usa coordenadas lógicas; `InputFrame.mouseX/Y` e `touches[i].x/y` já vêm em coordenadas lógicas (sem clamp: toque no letterbox vale). Nenhum botão fica abaixo de **y = 508** (home indicator do iPhone); botões de menu/pausa/fim/voltar têm **68** de altura (`BTN_H`).
 
 ## Mapa de módulos e APIs públicas
 
@@ -29,9 +30,11 @@ Canvas lógico **960×540** (`VIEW_W`/`VIEW_H`), escalado ao tamanho da janela c
 | `pool.ts` | não | `makePool<T extends {active:boolean}>(n: number, factory: () => T): Pool<T>` |
 | `spatial.ts` | não | `class SpatialHash { constructor(cellSize: number); clear(): void; insert(idx: number, x: number, y: number): void; query(x: number, y: number, radius: number, out: number[]): number[] }` |
 | `mathx.ts` | não | `dist(x1,y1,x2,y2)`, `distSq(...)`, `clamp(v,min,max)`, `lerp(a,b,t)`, `norm(x,y): [number,number]` (pode alocar tupla — usar fora de hot path — em hot path use inline) |
-| `input.ts` | SIM | `makeInput(canvas: HTMLCanvasElement): InputSys` — `InputSys = { frame(): InputFrame; endFrame(): void }` (endFrame limpa flags "pressed this frame" e deve ser chamado após o update) |
+| `inputframe.ts` | não | `makeInputFrame(): InputFrame` (única fonte do literal; `touches` = `MAX_TOUCHES` slots pré-alocados), `clearFrameFlags(f)` (zera nav/confirm/pause/num/mute/click/mouseMoved; preserva `touches`, `lastInput`, `mouseX/Y`, `moveX/Y`) |
+| `pointers.ts` | não | `makePointerLogic(f: InputFrame): PointerLogic` — `{ down(id,x,y,kind,button), move(id,x,y,kind), up(id,x,y,kind), cancel(id), cancelAll() }`. Mouse: down/move escrevem `mouseX/Y`, botão 0 → `click`. Toque: down ocupa slot + `mouseX/Y` + `mouseMoved` (press = highlight); move só atualiza o slot (`moved` se > `TAP_SLOP`); up com `!moved && !stick` → `click` + `mouseX/Y` no ponto do up |
+| `input.ts` | SIM | `makeInput(canvas): InputSys` — `InputSys = { frame(): InputFrame; endFrame(): void; reset(): void }`. Adaptador **só Pointer Events** (`pointerdown/move/up/cancel` no window; `touchend/touchcancel` com 0 dedos → `cancelAll`); teclado → `moveX/Y`, navegação, `lastInput='keyboard'`; boot `lastInput='touch'` se `(hover:none) and (pointer:coarse)`. `reset()` solta teclas e toques |
 | `sprites.ts` | SIM | `class SpriteCache { get(emoji: string, size: number): HTMLCanvasElement }` — pré-renderiza emoji em canvas offscreen, cacheado por `${emoji}:${size}` |
-| `audio.ts` | SIM | `class AudioSys { play(id: SoundId): void; toggleMute(): boolean; ensureStarted(): void }` — WebAudio sintetizado, sem assets; `ensureStarted()` chamado no 1º input do usuário; throttle interno para 'shoot'/'hit' |
+| `audio.ts` | SIM | `class AudioSys { play(id: SoundId): void; setMuted(v: boolean): void; toggleMute(): boolean; ensureStarted(): void }` — WebAudio sintetizado, sem assets; `ensureStarted()` no 1º gesto e retoma se `ctx.state !== 'running'` (cobre `'interrupted'` do iOS); `setMuted` é o espelho de `state.ui.muted`; throttle interno para 'shoot'/'hit' |
 | `loop.ts` | SIM | `startLoop(update: (dt: number) => void, render: () => void): void` — timestep fixo `1/60`, acumulador, máx. 5 steps/frame |
 
 ### `src/data/` (conteúdo puro; importa apenas `types.ts` e `constants.ts`)
@@ -52,8 +55,9 @@ Conteúdo conforme tabelas do `docs/GDD.md`.
 | Arquivo | API pública |
 |---|---|
 | `state.ts` | `makeGameState(seed: number): GameState` (mode `'menu'`, pools alocados); `startRun(s: GameState, charId: string, save: SaveData): void` (aplica personagem + meta, equipa arma inicial, zera pools/timers) |
-| `update.ts` | `updateGame(s: GameState, input: InputFrame, dt: number, ctx: GameContext): void` — dispatcher por `s.mode`; contém a lógica de TODOS os modos (menus, level-up, pausa, gameover/win banking de ouro via `ctx`), navegação por teclado E clique (hit-test via `ui/layout.ts`); durante `'playing'` chama os sistemas na ordem: player → spawner → enemies → weapons → projectiles → collisions → fx → camera |
-| `player.ts` | `updatePlayer(s, input, dt)` — movimento, facing, regen, iframes, atração/coleta de gems e pickups, morte → `'gameover'` |
+| `update.ts` | `updateGame(s: GameState, input: InputFrame, dt: number, ctx: GameContext): void` — dispatcher por `s.mode`; contém a lógica de TODOS os modos (menus, level-up, pausa, gameover/win banking de ouro via `ctx`), navegação por teclado E clique (hit-test via `ui/layout.ts`). Topo (todos os modes): `ui.touchMode = lastInput === 'touch'`; hit-test dos botões ⏸/🔊 do HUD só em touchMode + playing/paused; `input.mute` ou 🔊 alternam `ui.muted`. "Desistir" na pausa exige 2 ativações em `QUIT_ARM_TIME` s (`ui.quitArmed`). Durante `'playing'`: stick → player → spawner → enemies → weapons → projectiles → collisions → fx → camera |
+| `player.ts` | `updatePlayer(s, input, dt)` — movimento (teclado; se `moveX/Y` = 0 usa `s.ui.stick.mx/my` — teclado vence), facing, regen, iframes, atração/coleta de gems e pickups, morte → `'gameover'` |
+| `touchstick.ts` | `updateStick(s, input)` — joystick virtual flutuante → `s.ui.stick`. Candidato = slot atual (continuidade) ou 1º slot ativo cujo início não caiu em `hudRects()` (em touchMode); âncora nasce no `startX/Y`, segue o dedo além de `STICK_FULL` (follow), digital com histerese (`STICK_DEAD_IN`/`OUT`), `STICK_ANALOG` opcional. Marca `slot.stick = true` |
 | `spawner.ts` | `updateSpawner(s, dt)` — ondas contínuas por `WAVES`, eventos de `EVENTS`, elites periódicos, spawn fora da tela (anel), aplica `enemyHpScale(time)` |
 | `enemyAI.ts` | `updateEnemies(s, dt)` — comportamentos (`chase/dart/swoop/drunk`), separação barata entre vizinhos, decay de knockback/hitFlash |
 | `weaponsSys.ts` | `updateWeapons(s, dt)` — cooldowns/volleys, cria projéteis/zonas por behavior; `recalcStats(s)` — player.stats = base + passivos; `effectiveStats(s, w: EquippedWeapon): WeaponStats` — stats da arma no nível × multiplicadores do player |
@@ -67,9 +71,10 @@ Conteúdo conforme tabelas do `docs/GDD.md`.
 
 | Arquivo | API pública |
 |---|---|
-| `layout.ts` | **PURO, sem DOM** (usado pelo update p/ hit-test): `menuRects(): Btn[]`, `charSelectRects(n: number): Btn[]`, `shopRects(n: number): Btn[]`, `levelupRects(n: number): Btn[]`, `pauseRects(): Btn[]`, `endRects(): Btn[]` — `Btn = { x,y,w,h, id: string }` em coords lógicas |
+| `layout.ts` | **PURO, sem DOM** (usado pelo update p/ hit-test): `hitTest(rects, x, y): number`, `menuRects(): Btn[]`, `charSelectRects(n: number): Btn[]`, `shopRects(n: number): Btn[]`, `levelupRects(n: number): Btn[]`, `pauseRects(): Btn[]`, `endRects(): Btn[]`, `hudRects(): readonly Btn[]` (⏸/🔊, 72×72, **array cacheado**) + `HUD_PAUSE = 0`, `HUD_MUTE = 1` — `Btn = { x,y,w,h, id: string }` em coords lógicas |
 | `render.ts` | `render(ctx: CanvasRenderingContext2D, s: GameState, sprites: SpriteCache): void` — chão do boteco (padrão xadrez/ladrilho), zonas, gems, pickups, inimigos (flash branco), player, projéteis, aura, partículas, textos; depois `drawHUD` e `drawScreens` |
-| `hud.ts` | `drawHUD(ctx, s, sprites): void` — barra XP, timer, HP bar sobre o player, ouro/kills, ícones armas/passivos, barra de chefe |
+| `hud.ts` | `drawHUD(ctx, s, sprites): void` — barra XP, timer, HP bar sobre o player, ouro/kills (borda direita = `HUD_RIGHT_TOUCH` em touchMode), ícones armas/passivos, barra de chefe |
+| `touchui.ts` | `drawTouchUI(ctx, s, sprites): void` — anel/knob do stick (playing), botões ⏸(▶ em paused)/🔊(🔇) (só touchMode + playing/paused), onboarding "Toque e arraste…" enquanto `!ui.moved`. Desenhado por último no ramo de jogo do `render.ts` |
 | `screens.ts` | `drawScreens(ctx, s, sprites, save: SaveData): void` — menu/charselect/shop/levelup/pause/gameover/win, com hover highlight via `s.ui.sel` |
 
 ### `src/save/storage.ts`
@@ -80,14 +85,24 @@ Conteúdo conforme tabelas do `docs/GDD.md`.
 
 `runHeadless(opts: { seed: number; charId: string; maxMinutes: number }): SimReport` — roda a partida a 60Hz com um bot: kita fugindo do centro de massa dos inimigos próximos com bias orbital, coleta gems, escolhe upgrades por heurística (evolução > arma nova > passivo novo > upgrade), confirma menus. Report: ver `SimReport` em types.
 
+### `src/mobile.ts` (integração DOM, irmão de `main.ts`)
+
+`installMobileGuards()` (pinça iOS, touchmove não-passivo, dblclick) · `watchPortrait(cb)` (media query `(orientation: portrait) and (pointer: coarse) and (max-width: 767px)`; o overlay `#rotate` do `index.html` cobre e absorve toques) · `requestFullscreenLandscape()` (Android: fullscreen + `orientation.lock`, tudo com catch) · `makeWakeLock()` (`acquire/release` idempotentes) · `installBackTrap(isGameplay, onBack)` (pushState ao entrar em run; popstate em gameplay → pausa + pushState). Nada aqui lança em headless.
+
 ### `src/main.ts` (integração)
 
-Canvas + resize/DPR, `SpriteCache`, `AudioSys`, `InputSys`, save, `makeGameState(Date.now())`, `startLoop`: update → drena `state.sounds` → `endFrame`; render. Mute (M) e fullscreen opcional (F).
+Canvas + resize/DPR (`visualViewport`, `left/top` inteiros), `installMobileGuards`, `SpriteCache`, `AudioSys`, `InputSys`, save, `makeGameState(Date.now())`, `startLoop`: update → espelha `ui.muted` em `audio.setMuted` → transições (menu→charselect em touch: fullscreen; charselect→playing: back trap + wake lock; menu/fim: solta wake lock) → drena `state.sounds` → `endFrame`; render. Unlock de áudio em `pointerdown/pointerup/touchend/keydown`; `blur`/aba oculta/retrato → pausa + `input.reset()`.
+
+### Campos de entrada/UI
+
+- `InputFrame.touches: TouchSlot[]` (`{active,id,startX,startY,x,y,moved,stick}`, len `MAX_TOUCHES`) e `InputFrame.lastInput: 'keyboard'|'mouse'|'touch'`.
+- `GameState.ui`: `sel`, `usingMouse`, `lockT`, `touchMode`, `muted`, `moved`, `quitArmed`, `stick: StickState` (`{active,id,ox,oy,kx,ky,engaged,mx,my}`). `startRun` zera `moved`, `quitArmed` e os campos do `stick`.
 
 ## Ordem de update em `'playing'`
 
 ```
-time += dt → updatePlayer → updateSpawner → updateEnemies → updateWeapons
+time += dt → updateStick (escreve ui.stick) → updatePlayer → ui.moved (1º movimento)
+→ updateSpawner → updateEnemies → updateWeapons
 → updateProjectiles → updateCollisions → updateFx → camera segue player (+shake decay)
 → vitória se time >= WIN_TIME
 ```
@@ -101,4 +116,4 @@ time += dt → updatePlayer → updateSpawner → updateEnemies → updateWeapon
 
 ## Testes (vitest, Node puro)
 
-`tests/*.test.ts`: rng determinístico, pool, spatial hash, leveling (curva/level-ups múltiplos), weapons (effectiveStats, evolução), spawner (timeline), drops, e `sim.test.ts` (partida headless completa sem crash + sanidade de balanceamento).
+`tests/*.test.ts`: rng determinístico, pool, spatial hash, leveling (curva/level-ups múltiplos), weapons (effectiveStats, evolução), spawner (timeline), drops, `sim.test.ts` (partida headless completa sem crash + sanidade de balanceamento), e touch: `pointers.test.ts` (tap/slop/slots/cancel), `touchstick.test.ts` (histerese/follow/continuidade/HUD/teclado vence), `layout.test.ts` (rects, alvos ≥ 68, y ≤ 508, hudRects cacheado), `update-touch.test.ts` (touchMode, ⏸/🔊, mute, desistir em 2 toques). Smokes Playwright: `scripts/smoke.mjs` (desktop), `scripts/deepsmoke.mjs` (telas via hook), `scripts/mobilesmoke.mjs` (iPhone emulado: stick via CDP, 2 dedos, retrato, Safari com barra).

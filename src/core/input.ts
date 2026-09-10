@@ -1,33 +1,30 @@
-// Entrada de teclado/mouse. Teclado no window, mouse no canvas.
+// Adaptador DOM de entrada: teclado no window, ponteiros (mouse/toque/caneta)
+// via Pointer Events no window. A lógica de ponteiros é pura (core/pointers.ts).
 // frame() retorna SEMPRE o mesmo objeto InputFrame (sem alocação por frame);
 // endFrame() limpa as flags "pressed this frame" (chamar após o update).
 
-import type { InputFrame } from '../types'
+import type { InputFrame, InputSource } from '../types'
 import { VIEW_W, VIEW_H } from '../constants'
+import { makeInputFrame, clearFrameFlags } from './inputframe'
+import { makePointerLogic } from './pointers'
 
 export interface InputSys {
   frame(): InputFrame
   endFrame(): void
+  /** solta teclas e toques (blur, aba oculta, retrato) */
+  reset(): void
 }
 
 const DIAG = 0.7071067811865476 // 1/sqrt(2)
 
 export function makeInput(canvas: HTMLCanvasElement): InputSys {
-  const f: InputFrame = {
-    moveX: 0,
-    moveY: 0,
-    navX: 0,
-    navY: 0,
-    confirm: false,
-    pause: false,
-    num: 0,
-    mute: false,
-    mouseX: 0,
-    mouseY: 0,
-    click: false,
-    mouseMoved: false,
+  const f = makeInputFrame()
+  // boot: aparelho sem hover e com ponteiro grosso = touch (HUD ⏸/🔊 e dicas certas já no menu)
+  if (typeof window.matchMedia === 'function' &&
+      window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
+    f.lastInput = 'touch'
   }
-
+  const logic = makePointerLogic(f)
   const held = { up: false, down: false, left: false, right: false }
 
   window.addEventListener('keydown', (e: KeyboardEvent) => {
@@ -35,6 +32,7 @@ export function makeInput(canvas: HTMLCanvasElement): InputSys {
     if (k === 'ArrowUp' || k === 'ArrowDown' || k === 'ArrowLeft' || k === 'ArrowRight' || k === ' ') {
       e.preventDefault()
     }
+    let handled = true
     switch (k) {
       case 'w':
       case 'W':
@@ -76,8 +74,11 @@ export function makeInput(canvas: HTMLCanvasElement): InputSys {
       default:
         if (!e.repeat && k.length === 1 && k >= '1' && k <= '9') {
           f.num = k.charCodeAt(0) - 48
+        } else {
+          handled = false
         }
     }
+    if (handled) f.lastInput = 'keyboard'
   })
 
   window.addEventListener('keyup', (e: KeyboardEvent) => {
@@ -105,23 +106,56 @@ export function makeInput(canvas: HTMLCanvasElement): InputSys {
     }
   })
 
-  // evita tecla presa ao trocar de aba/janela
-  window.addEventListener('blur', () => {
+  function reset(): void {
     held.up = held.down = held.left = held.right = false
-  })
+    logic.cancelAll()
+  }
 
-  canvas.addEventListener('mousemove', (e: MouseEvent) => {
+  // evita tecla/dedo preso ao trocar de aba/janela
+  window.addEventListener('blur', reset)
+
+  // ---- ponteiros: coords lógicas SEM clamp (toque no letterbox vale; o stick
+  // flutuante traz o anel pra dentro via follow) ----
+  let lx = 0
+  let ly = 0
+  function toLogical(e: PointerEvent): boolean {
     const r = canvas.getBoundingClientRect()
-    if (r.width > 0 && r.height > 0) {
-      f.mouseX = ((e.clientX - r.left) / r.width) * VIEW_W
-      f.mouseY = ((e.clientY - r.top) / r.height) * VIEW_H
-    }
-    f.mouseMoved = true
-  })
+    if (r.width <= 0 || r.height <= 0) return false
+    lx = ((e.clientX - r.left) / r.width) * VIEW_W
+    ly = ((e.clientY - r.top) / r.height) * VIEW_H
+    return true
+  }
+  function kindOf(e: PointerEvent): InputSource {
+    return e.pointerType === 'mouse' ? 'mouse' : 'touch' // caneta conta como toque
+  }
 
-  canvas.addEventListener('mousedown', (e: MouseEvent) => {
-    if (e.button === 0) f.click = true
+  window.addEventListener('pointerdown', (e: PointerEvent) => {
+    // overlay de retrato absorve o toque (não vira gesto do jogo)
+    if (e.target instanceof Element && e.target.closest('#rotate')) return
+    if (e.pointerType !== 'mouse') e.preventDefault()
+    if (!toLogical(e)) return
+    logic.down(e.pointerId, lx, ly, kindOf(e), e.button)
   })
+  window.addEventListener('pointermove', (e: PointerEvent) => {
+    if (!toLogical(e)) return
+    logic.move(e.pointerId, lx, ly, kindOf(e))
+  })
+  window.addEventListener('pointerup', (e: PointerEvent) => {
+    if (!toLogical(e)) return
+    logic.up(e.pointerId, lx, ly, kindOf(e))
+  })
+  window.addEventListener('pointercancel', (e: PointerEvent) => {
+    logic.cancel(e.pointerId)
+  })
+  // rede extra: Safari às vezes não entrega pointerup/cancel do último dedo
+  const onTouchEnd = (e: TouchEvent): void => {
+    if (e.touches.length === 0) logic.cancelAll()
+  }
+  window.addEventListener('touchend', onTouchEnd, { passive: true })
+  window.addEventListener('touchcancel', onTouchEnd, { passive: true })
+
+  // higiene: sem menu de contexto no canvas (long-press / botão direito)
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault())
 
   return {
     frame(): InputFrame {
@@ -136,14 +170,8 @@ export function makeInput(canvas: HTMLCanvasElement): InputSys {
       return f
     },
     endFrame(): void {
-      f.navX = 0
-      f.navY = 0
-      f.confirm = false
-      f.pause = false
-      f.num = 0
-      f.mute = false
-      f.click = false
-      f.mouseMoved = false
+      clearFrameFlags(f)
     },
+    reset,
   }
 }

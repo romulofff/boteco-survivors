@@ -5,3 +5,4 @@ dist/
 .smoke/
 .smoke*/
 .deepsmoke/
+.mobilesmoke/

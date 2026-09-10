@@ -21,6 +21,7 @@
 - Mover: WASD / setas.
 - Menus e level-up: mouse (hover+clique) E teclado (setas/WASD + Enter/Espaço; 1-3 no level-up).
 - Pausa: Esc ou P. Mudo: M.
+- **Touch (celular, paisagem obrigatória):** joystick virtual flutuante — nasce onde o dedo desce (inclusive nas faixas do letterbox), digital (velocidade cheia após a zona morta, com histerese), a âncora segue o dedo. Botões ⏸ (vira ▶ na pausa) e 🔊/🔇 no canto superior direito do HUD, só quando o último input foi toque. Toque nos botões/cards = clique (tap = sem deslocamento; o dedo do joystick nunca vira tap). "Desistir" pede um 2º toque em 3 s. Onboarding "Toque e arraste em qualquer lugar pra mover" até o 1º movimento. Retrato → overlay "Vire o celular" + pausa. Teclado sempre vence o stick.
 
 ## 3. Personagens (3)
 
@@ -132,4 +133,4 @@ Save em localStorage: ouro, upgrades, recordes (kills, tempo, vitórias).
 
 ## 12. Fora de escopo v1
 
-Mapas múltiplos, desbloqueio de personagens, curse/luck, achievements, gamepad, mobile/touch, save de run no meio.
+Mapas múltiplos, desbloqueio de personagens, curse/luck, achievements, gamepad, save de run no meio. (Mobile/touch entrou na F9.)

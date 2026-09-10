@@ -13,6 +13,7 @@ import { weaponById } from '../data/weapons'
 import { effectiveStats } from '../game/weaponsSys'
 import { drawHUD } from './hud'
 import { drawScreens } from './screens'
+import { drawTouchUI } from './touchui'
 import { loadSave } from '../save/storage'
 
 const TAU = Math.PI * 2
@@ -669,4 +670,6 @@ export function render(
   // modos restantes (playing/levelup/paused/gameover/win) sempre têm HUD
   drawHUD(ctx, s, sprites)
   drawScreens(ctx, s, sprites, resolveSave(save))
+  // stick/⏸/🔊/onboarding por cima dos overlays (só desenha em playing/paused + touch)
+  drawTouchUI(ctx, s, sprites)
 }

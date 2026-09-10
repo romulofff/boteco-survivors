@@ -23,6 +23,25 @@ await page.goto(url)
 await page.waitForTimeout(1000)
 await shot('01-menu')
 
+// regressão do hover via Pointer Events: mouse sobre CADERNETA (menuRects 'shop'
+// centro (480,408)) → ui.sel === 1; desktop nunca entra em touchMode
+{
+  const pt = await page.evaluate(() => {
+    const r = document.getElementById('game').getBoundingClientRect()
+    return [r.left + (480 / 960) * r.width, r.top + (408 / 540) * r.height]
+  })
+  await page.mouse.move(pt[0], pt[1])
+  await page.waitForTimeout(150)
+  const ui = await page.evaluate(() => ({ sel: window.__boteco.state.ui.sel, touch: window.__boteco.state.ui.touchMode }))
+  if (ui.sel !== 1) errors.push('hover: esperava ui.sel === 1 sobre CADERNETA, veio ' + ui.sel)
+  if (ui.touch !== false) errors.push('desktop: ui.touchMode deveria ser false')
+  // devolve o hover pro JOGAR (sel 0) — o Enter abaixo depende disso
+  await page.mouse.move(pt[0], pt[1] - (84 / 540) * (await page.evaluate(() => document.getElementById('game').getBoundingClientRect().height)))
+  await page.waitForTimeout(150)
+  const sel0 = await page.evaluate(() => window.__boteco.state.ui.sel)
+  if (sel0 !== 0) errors.push('hover: esperava ui.sel === 0 sobre JOGAR, veio ' + sel0)
+}
+
 // menu → charselect
 await page.keyboard.press('Enter')
 await page.waitForTimeout(400)

@@ -49,6 +49,45 @@ export interface InputFrame {
   click: boolean
   /** mouse se moveu neste frame (para alternar controle hover vs teclado) */
   mouseMoved: boolean
+  /** slots de toque (len fixo MAX_TOUCHES, sem alocação); mouse NÃO usa slot */
+  touches: TouchSlot[]
+  /** última fonte de entrada; boot = 'touch' se (hover:none) and (pointer:coarse), senão 'keyboard' */
+  lastInput: InputSource
+}
+
+/** um dedo, coords lógicas; InputFrame.touches tem len fixo MAX_TOUCHES */
+export interface TouchSlot {
+  active: boolean
+  /** pointerId do DOM; -1 quando livre */
+  id: number
+  startX: number
+  startY: number
+  x: number
+  y: number
+  /** true assim que a distância da origem passou de TAP_SLOP (nunca vira tap) */
+  moved: boolean
+  /** true quando game/touchstick.ts reivindicou o slot como joystick (nunca vira tap) */
+  stick: boolean
+}
+
+export type InputSource = 'keyboard' | 'mouse' | 'touch'
+
+/** joystick virtual flutuante (game/touchstick.ts escreve; ui/touchui.ts desenha) */
+export interface StickState {
+  active: boolean
+  /** id do TouchSlot que controla o stick; -1 se nenhum */
+  id: number
+  /** âncora (centro do anel) — segue o dedo além de STICK_FULL */
+  ox: number
+  oy: number
+  /** knob (dedo clampado a STICK_FULL da âncora) */
+  kx: number
+  ky: number
+  /** dentro da histerese (true = movendo) */
+  engaged: boolean
+  /** vetor de movimento (|v| = 1 quando engaged e STICK_ANALOG=false; 0 senão) */
+  mx: number
+  my: number
 }
 
 // ---------- stats ----------
@@ -419,7 +458,20 @@ export interface GameState {
   sounds: SoundId[]
   /** estado de navegação de UI (índice selecionado na tela corrente);
    * lockT: grace period (s) que ignora clique/confirm ao abrir o level-up */
-  ui: { sel: number; usingMouse: boolean; lockT: number }
+  ui: {
+    sel: number
+    usingMouse: boolean
+    lockT: number
+    /** espelho de lastInput === 'touch' → HUD ⏸/🔊, dicas, hit-test do HUD */
+    touchMode: boolean
+    /** fonte da verdade do som desligado (M ou 🔊); main.ts espelha em AudioSys */
+    muted: boolean
+    /** true após o 1º movimento da run (esconde onboarding); startRun zera */
+    moved: boolean
+    /** segundos restantes da confirmação de "Desistir" (0 = desarmado) */
+    quitArmed: number
+    stick: StickState
+  }
   /** total de dano causado (relatórios) */
   damageDealt: number
   /** ouro ganho na run (para tela final) */

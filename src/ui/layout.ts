@@ -7,18 +7,41 @@
 // (quando mouseMoved); confirm/click ativam o botão rects[sel].
 
 import type { Btn } from '../types'
-import { VIEW_W, VIEW_H } from '../constants'
+import { VIEW_W, BTN_H, HUD_BTN } from '../constants'
 
 const CX = VIEW_W / 2
+/** y máximo (borda inferior) de qualquer botão — home indicator do iPhone */
+const SAFE_BOTTOM = 508
+
+/** índice do 1º rect contendo (x,y), -1 se nenhum (borda direita/inferior exclusiva) */
+export function hitTest(rects: readonly Btn[], x: number, y: number): number {
+  for (let i = 0; i < rects.length; i++) {
+    const b = rects[i]
+    if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return i
+  }
+  return -1
+}
+
+// ---------- HUD touch (⏸ / 🔊) ----------
+export const HUD_PAUSE = 0
+export const HUD_MUTE = 1
+const HUD_RECTS: readonly Btn[] = [
+  { x: VIEW_W - 8 - HUD_BTN, y: 8, w: HUD_BTN, h: HUD_BTN, id: 'pause' }, // centro (916,44)
+  { x: VIEW_W - 8 - HUD_BTN * 2 - 8, y: 8, w: HUD_BTN, h: HUD_BTN, id: 'mute' }, // centro (836,44)
+]
+/** ids 'pause','mute' — ARRAY CACHEADO (mesma referência sempre; não mutar) */
+export function hudRects(): readonly Btn[] {
+  return HUD_RECTS
+}
 
 /** ids: 'play', 'shop' */
 export function menuRects(): Btn[] {
   const w = 300
-  const h = 54
+  const h = BTN_H
   const x = CX - w / 2
   return [
-    { x, y: 305, w, h, id: 'play' },
-    { x, y: 375, w, h, id: 'shop' },
+    { x, y: 290, w, h, id: 'play' },
+    { x, y: 374, w, h, id: 'shop' },
   ]
 }
 
@@ -33,7 +56,7 @@ export function charSelectRects(n: number): Btn[] {
   for (let i = 0; i < n; i++) {
     btns.push({ x: x0 + i * (w + gap), y: 130, w, h, id: 'char' + i })
   }
-  btns.push({ x: 20, y: VIEW_H - 64, w: 140, h: 44, id: 'back' })
+  btns.push({ x: 20, y: SAFE_BOTTOM - BTN_H, w: 160, h: BTN_H, id: 'back' })
   return btns
 }
 
@@ -52,7 +75,7 @@ export function shopRects(n: number): Btn[] {
     const r = Math.floor(i / cols)
     btns.push({ x: x0 + c * (w + gapX), y: y0 + r * (h + gapY), w, h, id: 'meta' + i })
   }
-  btns.push({ x: 20, y: VIEW_H - 64, w: 140, h: 44, id: 'back' })
+  btns.push({ x: 20, y: SAFE_BOTTOM - BTN_H, w: 160, h: BTN_H, id: 'back' })
   return btns
 }
 
@@ -73,15 +96,15 @@ export function levelupRects(n: number): Btn[] {
 /** ids: 'resume', 'quit' */
 export function pauseRects(): Btn[] {
   const w = 260
-  const h = 52
+  const h = BTN_H
   const x = CX - w / 2
   return [
-    { x, y: 250, w, h, id: 'resume' },
+    { x, y: 236, w, h, id: 'resume' },
     { x, y: 320, w, h, id: 'quit' },
   ]
 }
 
 /** ids: 'menu' — tela de gameover/vitória */
 export function endRects(): Btn[] {
-  return [{ x: CX - 130, y: 430, w: 260, h: 52, id: 'menu' }]
+  return [{ x: CX - 130, y: 408, w: 260, h: BTN_H, id: 'menu' }]
 }

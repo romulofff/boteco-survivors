@@ -26,6 +26,16 @@ npm run dev      # http://localhost:5173
 | 1 / 2 / 3 ou clique | escolher upgrade no level-up |
 | P ou Esc | pausar |
 | M | som liga/desliga |
+| **Celular** | toque e arraste em qualquer lugar → mover; ⏸/🔊 no canto → pausa/som; toque nos botões |
+
+### No celular
+
+- **Paisagem obrigatória** — em retrato o jogo mostra "Vire o celular" e pausa a run (o rotation lock do aparelho precisa estar desligado).
+- iPhone: Safari → Compartilhar → **Adicionar à Tela de Início** tira a barra do navegador e usa a tela inteira.
+- A **chave de silêncio** do iPhone silencia o jogo (WebAudio respeita o modo silencioso).
+- Android/Chrome: ao tocar em JOGAR o jogo pede tela cheia e trava a paisagem.
+- **Sair da página no meio da run perde o ouro** da run (só é bancado ao morrer/vencer/desistir).
+- "Desistir" na pausa pede um segundo toque de confirmação.
 
 ### O loop
 
@@ -46,12 +56,14 @@ npm run test       # suíte completa (inclui partida de 20min simulada headless)
 npm run sim        # só a simulação de balanceamento
 npm run typecheck
 npm run build      # gera dist/index.html (single-file)
-node scripts/smoke.mjs      # smoke test visual via playwright
-node scripts/deepsmoke.mjs  # fotografa todas as telas via hook de debug
+npm run smoke          # smoke test visual via playwright (desktop, teclado+mouse)
+npm run smoke:deep     # fotografa todas as telas via hook de debug
+npm run smoke:mobile   # emula iPhone paisagem: stick, ⏸/🔊, desistir, retrato, fps
+node scripts/icon.mjs  # regera public/apple-touch-icon.png
 ```
 
 Documentação: `docs/GDD.md` (design), `docs/ARCHITECTURE.md` (contratos de
 módulos), `docs/BALANCE.md` (números e sweep), `docs/KANBAN.md` (histórico).
 
 Dicas de debug: `?seed=N` na URL fixa o RNG; `window.__boteco` expõe
-`{ state, ctx, save }` no console.
+`{ state, ctx, save, input }` no console.

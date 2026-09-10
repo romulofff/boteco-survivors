@@ -8,8 +8,13 @@ export function updatePlayer(s: GameState, input: InputFrame, dt: number): void 
   const p = s.player
   const st = p.stats
 
-  const mx = input.moveX
-  const my = input.moveY
+  let mx = input.moveX
+  let my = input.moveY
+  // stick virtual só quando o teclado está em zero (teclado vence)
+  if (mx === 0 && my === 0 && s.ui.stick.active) {
+    mx = s.ui.stick.mx
+    my = s.ui.stick.my
+  }
   if (mx !== 0 || my !== 0) {
     const spd = PLAYER_BASE_SPEED * st.speed
     p.x += mx * spd * dt

@@ -93,6 +93,30 @@ export const REHIT_INTERVAL = 0.5
 /** s entre hits de toque do mesmo inimigo (via iframes do player) */
 export const ZONE_TICK = 0.5
 
+// ---------- touch / HUD ----------
+/** engaja o stick (px lógicos) */
+export const STICK_DEAD_IN = 10
+/** solta o stick (histerese) */
+export const STICK_DEAD_OUT = 5
+/** raio do anel; além disso a âncora segue o dedo */
+export const STICK_FULL = 56
+export const STICK_KNOB_R = 22
+/** true → magnitude proporcional entre DEAD_IN e FULL (digital por padrão) */
+export const STICK_ANALOG = false
+/** deslocamento máximo (px lógicos) pra um toque contar como tap */
+export const TAP_SLOP = 12
+export const MAX_TOUCHES = 2
+/** hit-box dos botões ⏸/🔊 do HUD touch */
+export const HUD_BTN = 72
+/** raio visual (círculo) dos botões do HUD touch */
+export const HUD_BTN_R = 24
+/** borda direita dos stats (Nv/💰/💀) quando o HUD touch está visível */
+export const HUD_RIGHT_TOUCH = 788
+/** altura dos botões de menu/pausa/fim/voltar (alvo ≥ 43 pt no pior caso) */
+export const BTN_H = 68
+/** s que "Desistir" fica armado esperando o 2º toque */
+export const QUIT_ARM_TIME = 3
+
 // ---------- cores (placeholders) ----------
 export const COLOR_BG = '#1a1418'
 export const COLOR_FLOOR_A = '#241c20'

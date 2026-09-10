@@ -15,6 +15,14 @@ const FONT = 'system-ui, sans-serif'
 const CX = VIEW_W / 2
 const TAU = Math.PI * 2
 
+// strings constantes (sem concat por frame)
+const HINT_MENU_KEYS = 'WASD/setas mover · ataque automático · P pausa · M som'
+const HINT_MENU_TOUCH = 'Toque e arraste pra mover · ataque automático · ⏸ pausa · 🔊 som'
+const HINT_LEVELUP_KEYS = '1/2/3 ou clique'
+const HINT_LEVELUP_TOUCH = 'Toque num card pra escolher'
+const LABEL_QUIT = 'Desistir e voltar'
+const LABEL_QUIT_ARMED = 'Tem certeza? Toque de novo'
+
 // ---------- estado visual local (animações por performance.now) ----------
 
 let prevMode = ''
@@ -209,9 +217,9 @@ function drawMenu(ctx: CanvasRenderingContext2D, s: GameState, save: SaveData, s
       save.wins + (save.wins === 1 ? ' vitória' : ' vitórias') + '  ·  💰 ' + save.gold,
     CX, 482,
   )
-  ctx.font = '13px ' + FONT
+  ctx.font = (s.ui.touchMode ? '16px ' : '13px ') + FONT
   ctx.fillStyle = '#6f676c'
-  ctx.fillText('WASD/setas mover · ataque automático · P pausa · M som', CX, 508)
+  ctx.fillText(s.ui.touchMode ? HINT_MENU_TOUCH : HINT_MENU_KEYS, CX, 508)
   ctx.font = '11px ' + FONT
   ctx.fillStyle = '#524b50'
   ctx.fillText('© Boteco Survivors v0.9', CX, 530)
@@ -417,9 +425,9 @@ function drawLevelUp(ctx: CanvasRenderingContext2D, s: GameState, sprites: Sprit
 
   ctx.globalAlpha = 1
   ctx.textAlign = 'center'
-  ctx.font = '14px ' + FONT
+  ctx.font = (s.ui.touchMode ? '16px ' : '14px ') + FONT
   ctx.fillStyle = '#8a8288'
-  ctx.fillText('1/2/3 ou clique', CX, 462)
+  ctx.fillText(s.ui.touchMode ? HINT_LEVELUP_TOUCH : HINT_LEVELUP_KEYS, CX, 462)
 }
 
 function drawPaused(ctx: CanvasRenderingContext2D, s: GameState): void {
@@ -440,7 +448,7 @@ function drawPaused(ctx: CanvasRenderingContext2D, s: GameState): void {
 
   const rects = pauseRects()
   drawBtn(ctx, rects[0], 'Continuar', s.ui.sel === 0)
-  drawBtn(ctx, rects[1], 'Desistir e voltar', s.ui.sel === 1)
+  drawBtn(ctx, rects[1], s.ui.quitArmed > 0 ? LABEL_QUIT_ARMED : LABEL_QUIT, s.ui.sel === 1)
 }
 
 function drawEnd(ctx: CanvasRenderingContext2D, s: GameState, sprites: SpriteCache, win: boolean): void {

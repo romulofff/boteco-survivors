@@ -1,13 +1,15 @@
 // Dispatcher por mode: menus, run, level-up, pausa, fim de run (banking).
 import type { Btn, GameContext, GameState, InputFrame } from '../types'
-import { WIN_TIME } from '../constants'
+import { QUIT_ARM_TIME, WIN_TIME } from '../constants'
 import { CHARACTERS } from '../data/characters'
 import { META_UPGRADES } from '../data/meta'
 import {
-  charSelectRects, endRects, levelupRects, menuRects, pauseRects, shopRects,
+  HUD_MUTE, HUD_PAUSE, charSelectRects, endRects, hitTest, hudRects, levelupRects,
+  menuRects, pauseRects, shopRects,
 } from '../ui/layout'
 import { startRun } from './state'
 import { updatePlayer } from './player'
+import { updateStick } from './touchstick'
 import { updateSpawner } from './spawner'
 import { updateEnemies } from './enemyAI'
 import { updateWeapons } from './weaponsSys'
@@ -15,14 +17,6 @@ import { updateProjectiles } from './projectiles'
 import { updateCollisions } from './collide'
 import { updateFx } from './fx'
 import { applyUpgrade, openLevelUp } from './leveling'
-
-function hitTest(rects: Btn[], x: number, y: number): number {
-  for (let i = 0; i < rects.length; i++) {
-    const b = rects[i]
-    if (x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h) return i
-  }
-  return -1
-}
 
 function wrap(v: number, len: number): number {
   return ((v % len) + len) % len
@@ -60,17 +54,20 @@ function bank(s: GameState, ctx: GameContext): void {
   ctx.persist()
 }
 
-function updatePlaying(s: GameState, input: InputFrame, dt: number, ctx: GameContext): void {
-  if (input.pause) {
+function updatePlaying(s: GameState, input: InputFrame, dt: number, ctx: GameContext, hudHit: number): void {
+  if (input.pause || hudHit === HUD_PAUSE) {
     s.mode = 'paused'
     s.ui.sel = 0
+    s.ui.quitArmed = 0
     s.sounds.push('click')
     return
   }
 
   s.time += dt
   s.frame++
+  updateStick(s, input) // antes do player: escreve ui.stick
   updatePlayer(s, input, dt)
+  if (!s.ui.moved && (input.moveX !== 0 || input.moveY !== 0 || s.ui.stick.engaged)) s.ui.moved = true
   updateSpawner(s, dt)
   updateEnemies(s, dt)
   updateWeapons(s, dt)
@@ -100,6 +97,16 @@ function updatePlaying(s: GameState, input: InputFrame, dt: number, ctx: GameCon
 }
 
 export function updateGame(s: GameState, input: InputFrame, dt: number, ctx: GameContext): void {
+  // touch: HUD ⏸/🔊 só existe em touchMode, nos modos playing/paused
+  s.ui.touchMode = input.lastInput === 'touch'
+  const hudHit = s.ui.touchMode && input.click && (s.mode === 'playing' || s.mode === 'paused')
+    ? hitTest(hudRects(), input.mouseX, input.mouseY) : -1
+  // mute é estado do jogo (M ou 🔊); main.ts espelha em AudioSys
+  if (input.mute || hudHit === HUD_MUTE) {
+    s.ui.muted = !s.ui.muted
+    s.sounds.push('click')
+  }
+
   switch (s.mode) {
     case 'menu': {
       const rects = menuRects()
@@ -184,7 +191,7 @@ export function updateGame(s: GameState, input: InputFrame, dt: number, ctx: Gam
     }
 
     case 'playing':
-      updatePlaying(s, input, dt, ctx)
+      updatePlaying(s, input, dt, ctx, hudHit)
       break
 
     case 'levelup': {
@@ -209,11 +216,14 @@ export function updateGame(s: GameState, input: InputFrame, dt: number, ctx: Gam
     }
 
     case 'paused': {
-      if (input.pause) {
+      if (input.pause || hudHit === HUD_PAUSE) {
         s.mode = 'playing'
+        s.ui.quitArmed = 0
         s.sounds.push('click')
         break
       }
+      // confirmação de "Desistir" expira sozinha
+      if (s.ui.quitArmed > 0) s.ui.quitArmed = Math.max(0, s.ui.quitArmed - dt)
       const rects = pauseRects()
       if (input.navY !== 0) {
         s.ui.usingMouse = false
@@ -222,14 +232,22 @@ export function updateGame(s: GameState, input: InputFrame, dt: number, ctx: Gam
       const act = pointerAct(s, input, rects)
       if (act === 'resume') {
         s.mode = 'playing'
+        s.ui.quitArmed = 0
         s.sounds.push('click')
       } else if (act === 'quit') {
-        // abandona: banca como derrota e volta direto ao menu
-        s.result = 'dead'
-        bank(s, ctx)
-        s.mode = 'menu'
-        s.ui.sel = 0
-        s.sounds.push('click')
+        if (s.ui.quitArmed > 0) {
+          // 2º toque dentro do prazo: abandona (banca como derrota) e volta ao menu
+          s.result = 'dead'
+          bank(s, ctx)
+          s.mode = 'menu'
+          s.ui.sel = 0
+          s.ui.quitArmed = 0
+          s.sounds.push('click')
+        } else {
+          // 1º toque só arma ("Tem certeza? Toque de novo")
+          s.ui.quitArmed = QUIT_ARM_TIME
+          s.sounds.push('click')
+        }
       }
       break
     }

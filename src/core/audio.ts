@@ -56,14 +56,21 @@ export class AudioSys {
       this.musicGain.gain.value = MUSIC_VOL / MASTER_VOL
       this.musicGain.connect(this.master)
     }
-    if (this.ctx.state === 'suspended') void this.ctx.resume()
+    // 'suspended' (autoplay) ou 'interrupted' (ligação/Siri no iOS): retoma
+    if (this.ctx.state !== 'running') void this.ctx.resume()
   }
 
   /** silencia TUDO (SFX + música); a música continua agendando e retoma no unmute */
   toggleMute(): boolean {
-    this.muted = !this.muted
-    if (this.master) this.master.gain.value = this.muted ? 0 : MASTER_VOL
+    this.setMuted(!this.muted)
     return this.muted
+  }
+
+  /** espelho de state.ui.muted (main.ts); no-op se igual */
+  setMuted(v: boolean): void {
+    if (v === this.muted) return
+    this.muted = v
+    if (this.master) this.master.gain.value = v ? 0 : MASTER_VOL
   }
 
   // ---- música procedural ----

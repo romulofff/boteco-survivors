@@ -150,14 +150,14 @@ await shot('deep-04-gameover')
 await page.goto(url)
 await page.waitForTimeout(900)
 await page.evaluate(() => { window.__boteco.save.gold = 500 })
-await clickLogical(480, 402) // menuRects 'shop': (330,375,300,54) → centro
+await clickLogical(480, 402) // menuRects 'shop': (330,374,300,68) → dentro
 await page.waitForTimeout(500)
 await shot('deep-05-shop')
 
 // ---- g) vitória ----
-await clickLogical(90, 498) // shopRects 'back': (20,476,140,44)
+await clickLogical(90, 498) // shopRects 'back': (20,440,160,68)
 await page.waitForTimeout(400)
-await clickLogical(480, 332) // menuRects 'play': (330,305,300,54)
+await clickLogical(480, 332) // menuRects 'play': (330,290,300,68)
 await page.waitForTimeout(400)
 await page.keyboard.press('Enter') // charselect: sel resetado → char 0
 await page.waitForTimeout(800)

@@ -6,6 +6,7 @@ import type { GameContext, GameState, InputFrame, Mode, SimMinute, SimReport } f
 import { FIXED_DT } from '../constants'
 import { weaponById } from '../data/weapons'
 import { makeRNG } from '../core/rng'
+import { makeInputFrame } from '../core/inputframe'
 import { makeGameState, startRun } from '../game/state'
 import { updateGame } from '../game/update'
 import { defaultSave } from '../save/storage'
@@ -91,20 +92,9 @@ export function runHeadless(opts: RunHeadlessOpts): SimReportX {
   let heldMy = 0
 
   // InputFrame sintético, reutilizado todo frame (sem alocação no loop)
-  const input: InputFrame = {
-    moveX: 0,
-    moveY: 0,
-    navX: 0,
-    navY: 0,
-    confirm: false,
-    pause: false,
-    num: 0,
-    mute: false,
-    mouseX: 480,
-    mouseY: 270,
-    click: false,
-    mouseMoved: false,
-  }
+  const input: InputFrame = makeInputFrame()
+  input.mouseX = 480
+  input.mouseY = 270
 
   const minutes: SimMinuteX[] = []
   const bossFights: SimBossFight[] = []

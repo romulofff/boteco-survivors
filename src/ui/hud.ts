@@ -5,7 +5,7 @@ import type { GameState } from '../types'
 import type { SpriteCache } from '../core/sprites'
 import {
   VIEW_W, VIEW_H, COLOR_XP, COLOR_HP, COLOR_GOLD,
-  MAX_WEAPONS, MAX_PASSIVES, PLAYER_IFRAMES, WIN_TIME,
+  MAX_WEAPONS, MAX_PASSIVES, PLAYER_IFRAMES, WIN_TIME, HUD_RIGHT_TOUCH,
 } from '../constants'
 import { weaponById } from '../data/weapons'
 import { passiveById } from '../data/passives'
@@ -121,15 +121,16 @@ export function drawHUD(ctx: CanvasRenderingContext2D, s: GameState, sprites: Sp
     ctx.globalAlpha = 1
   }
 
-  // nível + personagem escolhido (direita)
+  // nível + personagem escolhido (direita; em touchMode desloca p/ dar lugar a ⏸/🔊)
+  const rightX = s.ui.touchMode ? HUD_RIGHT_TOUCH : VIEW_W - 8
   ctx.font = 'bold 13px ' + FONT
   ctx.textAlign = 'right'
   ctx.fillStyle = '#fff'
   const lvlText = 'Nv ' + p.level
-  ctx.fillText(lvlText, VIEW_W - 8, 24)
+  ctx.fillText(lvlText, rightX, 24)
   const lvlW = ctx.measureText(lvlText).width
   const cimg = sprites.get(hudChar(s.charId), 16)
-  ctx.drawImage(cimg, VIEW_W - 8 - lvlW - cimg.width - 5, 24 - 4 - cimg.height / 2)
+  ctx.drawImage(cimg, rightX - lvlW - cimg.width - 5, 24 - 4 - cimg.height / 2)
 
   // ---- timer central (dourado no minuto final; vermelho piscando nos últimos 10s) ----
   const t = fmtTime(s.time)
@@ -159,8 +160,8 @@ export function drawHUD(ctx: CanvasRenderingContext2D, s: GameState, sprites: Sp
   }
 
   // ---- ouro / kills (direita) ----
-  iconStat(ctx, sprites, '💰', '' + p.gold, VIEW_W - 8, 48, COLOR_GOLD)
-  iconStat(ctx, sprites, '💀', '' + p.kills, VIEW_W - 8, 70, '#d8ccd2')
+  iconStat(ctx, sprites, '💰', '' + p.gold, rightX, 48, COLOR_GOLD)
+  iconStat(ctx, sprites, '💀', '' + p.kills, rightX, 70, '#d8ccd2')
 
   // ---- HP bar sobre o player (screen space; flash branco logo após o hit) ----
   const sx = p.x - s.camera.x + VIEW_W / 2
